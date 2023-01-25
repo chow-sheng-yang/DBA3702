@@ -1,9 +1,9 @@
 # DBA3702
-** Organisation: National University of Singapore **
-** Module: Descriptive Analytics with R, DBA3702 **
-** Academic Year: 2022/23 Semester 1 **
-** Done By: Chow Sheng Yang, Yin Xin Min, Andrea Lim, Pong Zi Jie **
-** Taught By: Professor Liu Qi Zhang **
+** Organisation: National University of Singapore ** 
+** Module: Descriptive Analytics with R, DBA3702 ** 
+** Academic Year: 2022/23 Semester 1 ** 
+** Done By: Chow Sheng Yang, Yin Xin Min, Andrea Lim, Pong Zi Jie ** 
+** Taught By: Professor Liu Qi Zhang ** 
 
 This app is a one-stop platform inclusive of an interactive dashboard designed to automate data-wrangling processeses for epidemiologists (target audience). As large-scaled epidemics often involve hundreds of thousands of data being updated frequently, it is inefficient for researchers to manually import, clean and visualise this data. 
 
