@@ -1,4 +1,4 @@
-# DBA3702
+# Disease Tracker
 **Organisation: National University of Singapore**  
 **Module: Descriptive Analytics with R, DBA3702**  
 **Academic Year: 2022/23 Semester 1**  
