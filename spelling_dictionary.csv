@@ -1,0 +1,33 @@
+options,values,group,orders
+ssgp,singapore,nationality,1
+sg,singapore,nationality,2
+siingapore,singapore,nationality,3
+sgp,singapore,nationality,4
+sgpp,singapore,nationality,5
+SG,singapore,nationality,6
+ingapore,singapore,nationality,7
+sing,singapore,nationality,8
+SGp,singapore,nationality,9
+feverish ,fever,.regex ^V,1
+feverish,fever,.regex ^V,2
+fevering,fever,.regex ^V,3
+tire,tiredness,.regex ^V,4
+tired,tiredness,.regex ^V,5
+tirednes ,tiredness,.regex ^V,6
+tirednes,tiredness,.regex ^V,7
+sorethroat,sore throat,.regex ^V,8
+sore throats,sore throat,.regex ^V,9
+nose congestion,nasal congestion,.regex ^V,10
+nasal congest,nasal congestion,.regex ^V,11
+breathing difficult,breathing difficulty,.regex ^V,12
+breathe difficulty,breathing difficulty,.regex ^V,13
+ciF,cif,hospital,1
+nicd,ncid,hospital,2
+nush,nuh,hospital,3
+ahh,ah,hospital,4
+sKh,skh,hospital,5
+gh,sgh,hospital,6
+kkkh,kkh,hospital,7
+ktphh,ktph,hospital,8
+ssgh,sgh,hospital,9
+cghs,cgh,hospital,10

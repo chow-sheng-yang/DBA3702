@@ -1,0 +1,461 @@
+---
+title: "Compiled functions"
+author: "zi jie"
+date: "2022-11-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#install.packages("tidytext")
+```
+
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+library(stringr)
+library(knitr)
+library(ggplot2)
+library(ggmap)
+library(leaflet)
+library(leaflet.extras)
+library(lubridate)
+library(scales)
+library(formattable)
+library(rgdal)
+library(raster)
+library(shinyTime)
+library(shiny)
+library(shinycssloaders)
+library(gganimate)
+library(gifski)
+library(png)
+library(gapminder)
+library(data.table)
+library(rworldmap)
+library(htmlwidgets)
+library(XML)
+library(jsonlite)
+library(curl)
+library(readxl)
+library(mapview)
+library(datefixR)
+library(tm)
+library(tidytext)
+```
+
+
+```{r}
+df <- read.csv("finaldataset.csv", stringsAsFactors = FALSE)
+zipcodes <- read.csv("sg_zipcode_mapper.csv")
+```
+
+#GENERALISED:
+1. convert all blanks to NAs
+```{r}
+blank_NA <- function(df){
+  df[df == ''] <- NA
+  df
+}
+```
+
+```{r}
+df <- blank_NA(df)
+```
+
+2. fill postal 
+```{r}
+fill_postal <- function(df, colpostal, coladdress)
+{
+  zipcodes <- read.csv("sg_zipcode_mapper.csv")
+  for (i in 1:nrow(df))
+    {
+    if (is.na(df[i, colpostal]))
+    {
+      filladdress <- df[i, coladdress]
+      fillpostal <- zipcodes[which(zipcodes[, 8] == filladdress), 1]
+      df[i, colpostal] <- fillpostal
+    }
+  }
+  df[, colpostal] <- paste0("Singapore", " ", df[, colpostal])
+  return(df)
+}
+```
+
+```{r}
+df <- fill_postal(df, 10,11)
+```
+
+3. fill address
+```{r}
+fill_address <- function(df, colpostal, coladdress)
+{
+  zipcodes <- read.csv("sg_zipcode_mapper.csv")
+  for (i in 1:nrow(df))
+    {
+    if (is.na(df[i, coladdress]))
+    {
+      fillpostal <- str_extract(df[i, colpostal], "\\d+")
+      filladdress <- zipcodes[which(zipcodes[, 1] == fillpostal), 8]
+      df[i, coladdress] <- filladdress
+    }
+  }
+  return(df)
+}
+```
+
+```{r}
+df <- fill_address(df, 10, 11)
+```
+
+4. add long/lat
+```{r}
+addLongLat <- function(df)
+{
+  df[, "Latitude"] <- NA
+  df[, "Longitude"] <- NA
+  for (i in 1:nrow(df))
+    {
+    df[i, "Latitude"] <- zipcodes[which(zipcodes[, 1] == str_extract(df[i, 10], "\\d+")), 2]
+    df[i, "Longitude"] <- zipcodes[which(zipcodes[, 1] == str_extract(df[i, 10], "\\d+")), 3]
+  }
+  return(df)
+}
+```
+
+```{r}
+df <- addLongLat(df)
+```
+
+5. convert to lowercase
+#changing all strings to small caps
+```{r}
+lower_string <- function(df){
+  for(i in 1:ncol(df)) {# for-loop over columns
+  if (class(df[, i]) == "character")
+  df[ , i] <- tolower(df[ , i])
+  }
+  return(df)
+}
+```
+
+```{r}
+df <- lower_string(df)
+```
+
+6 & 7. replace then remove punc for cols except
+```{r}
+#for symptoms column
+punctuation_replace <- function(df, colindex){
+  library(stringr)
+  library(stopwords)
+  stopwords_regex = paste(stopwords("en"), collapse = "\\b|\\b")
+  stopwords_regex = paste0("\\b", stopwords_regex, "\\b")
+  df[, colindex] = stringr::str_replace_all(df[, colindex], stopwords_regex, ", ")
+  a <- str_replace_all(df[, colindex], "[[:punct:]]", ", ")
+}
+
+#for all other columns
+punctuation_remove <- function(df, colindex){
+  df[, colindex] <- str_replace_all(df[, colindex], "[[:punct:]]", "")
+}
+```
+
+```{r}
+df$symptoms <- punctuation_replace(df, 12)
+```
+
+```{r}
+df$case <- punctuation_remove(df, 2)
+df$age <- punctuation_remove(df, 4)
+df$gender <- punctuation_remove(df, 5)
+df$nationality <- punctuation_remove(df, 6)
+df$hospital <- punctuation_remove(df, 7)
+df$postal <- punctuation_remove(df, 10)
+```
+
+8. convert age to numeric
+```{r}
+clean_age <- function(df, col1index){
+  library(stringr) 
+  #remove all punctuations
+    df[,col1index] <- str_replace_all(df[,col1index], "[[:punct:]]", "") 
+  #converting NAs to 0
+  for (i in 1:nrow(df)){
+      if (is.na(df[i,col1index])) {
+    df[i,col1index] <- "0"
+  }
+  #cleaning dirty data
+  df[,col1index] <- as.integer(df[,col1index])
+    if (nchar(df[i,col1index]) >= 3 & abs(df[i,col1index]) > 113 & substr(df[i,col1index], 1, 1)!=0) {
+    #converting back to integer format
+df[i,col1index] <- as.integer(substr(df[i,col1index],1,2))
+    }
+  }
+  return(df)
+}
+```
+
+```{r}
+df <- clean_age(df, 4)
+```
+9. fill in relevant NAs
+```{r}
+approx_NAs <- function(df, col1index)
+{
+  library(dplyr)
+  discretetable <- data.frame()
+  for (index in 1:length(table(df[,col1index])))
+  {
+    variable <- names(table(df[,col1index])[index])
+    prob <- as.numeric(table(df[,col1index])[index])/length(df[,col1index])
+    output <- c(variable, prob)
+    discretetable <- rbind(discretetable, output)
+  }
+  colnames(discretetable) <- c("variable","prob")
+  discretetable$prob <- as.numeric(discretetable$prob)
+  
+   dirty <- sample(x = discretetable$variable, 
+                size = sum(is.na(df[,col1index])), replace = TRUE, 
+                prob = discretetable$prob)
+
+   df[,col1index] <- c(df[,col1index], dirty) %>% na.omit()
+   warning("NAs have been replaced with values approximated by probability")
+return(df)
+}
+```
+
+```{r}
+df <- approx_NAs(df,4)
+df <- approx_NAs(df,5)
+df <- approx_NAs(df,6)
+df <- approx_NAs(df,7)
+```
+10. convert date
+```{r}
+library(devtools)
+devtools::install_github("reconhub/linelist")
+library(linelist)
+
+std_date <- function(colname){
+  a <- linelist::guess_dates(as.character(colname))
+  a <- ymd(a)
+}
+
+df$date <- std_date(df$date)
+```
+
+
+```{r}
+df$date <- std_date(df$date)
+df$date.discharged <- std_date(df$date.discharged)
+df$date.symptoms.onset <- std_date(df$date.symptoms.onset)
+df$date.symptoms.stop <- std_date(df$date.symptoms.stop)
+```
+
+11. convert date.onset, date.stop
+```{r}
+validate_symptomsOnset <- function(df, colsymptom, colstart)
+{
+  for (i in 1:nrow(df)) {
+    if (is.na(df[i, colstart]))
+      if (!is.na(df[i, colsymptom]))
+        df[i, colsymptom] <- NA
+  }
+  warning("Symptoms with no onset dates overwrite with NA")
+  return(df)
+}
+```
+
+```{r}
+df <- validate_symptomsOnset(df,12,13)
+```
+12. validate stop dates
+```{r}
+validate_stopDates <- function(df, colstart, colstop)
+{
+  for (i in 1:nrow(df)) {
+    if (is.na(df[i, colstart]))
+    df[i, colstop] <- NA
+  }
+  warning("Date symptoms stop with no onset dates overwrite with NA")
+  return(df)
+}
+```
+
+```{r}
+df <- validate_stopDates(df,13, 14)
+```
+
+13. typos overall
+```{r}
+mispell <- function(df){
+  library(matchmaker)
+  df <- df
+  wordlist1 <- read.csv("spelling_dictionary.csv", 
+                     stringsAsFactors = FALSE)
+  df <- match_df(df, dictionary= wordlist1,
+                                from = "options",
+                                to = "values",
+                                by = "group")
+}
+```
+```{r}
+df <- mispell(df)
+```
+```{r}
+unique(df$nationality)
+```
+
+
+SPECIFIC:
+14. gender typos
+```{r}
+clean_gender <- function(df, colgender)
+{
+   library(stringr)
+  for (i in 1:nrow(df)){
+     df[i,colgender] <- tolower(substr(df[i,colgender],1,1))
+      if ((df[i,colgender])=="n") {
+        df[i,colgender] <- "m"
+        }
+    }
+ 
+  return(df)
+  }
+```
+
+```{r}
+df <- clean_gender(df, 5)
+```
+
+
+15. add is recovered col
+```{r}
+recovered <- function(df, coldischarged, coldeceased){
+  df <- df
+  df$is.recovered <- ifelse(!is.na(df[,coldischarged]) & df[,coldeceased] == FALSE| !is.na(df[,coldischarged]) & is.na(df[,coldeceased]), TRUE, FALSE)
+  warning('Assumption that recovery is based on date discharge')
+  return (df)
+}
+```
+
+```{r}
+df <- recovered(df, 8,9)
+```
+
+
+16. symptoms typo
+```{r}
+# Mispelt words for symptoms
+
+clean_symptoms <- function(df, colsymptoms){
+  df <- df
+  numcol <- str_count(df[, colsymptoms], ", ") + 1
+  max.col <- max(numcol, na.rm = T)
+  split.col <- as.data.frame(trimws(str_split_fixed(df[, colsymptoms], pattern=", ", n=max.col)))
+  df <- cbind(df, split.col)
+  
+  # Clean mispelt words
+  library(matchmaker)
+  wordlist1 <- read.csv("spelling_dictionary.csv", 
+                     stringsAsFactors = FALSE)
+  df <- match_df(df, dictionary= wordlist1,
+                                from = "options",
+                                to = "values",
+                                by = "group")
+  names <- colnames(split.col)
+  df <- unite(df, col="symptoms", all_of(names), sep=", ", na.rm = TRUE)
+  df
+}
+```
+
+```{r}
+df <- clean_symptoms(df, 12)
+```
+
+
+17. add symptoms duration
+```{r}
+addSymptomsDuration <- function(df, colstart, colstop, unit)
+{
+  df[, "Duration_Symptoms"] <- NA
+  df[, "Duration_Symptoms"] <- difftime(df[, colstop], df[, colstart],  units = unit)
+  if (TRUE %in% unique(df[, "Duration_Symptoms"] < 0))
+    warning("Your symptoms duration data contains non-positive elements")
+return(df)
+}
+```
+
+```{r}
+df <- addSymptomsDuration(df, 12, 13, "days")
+```
+
+18. add symptom count
+
+```{r}
+addsymptomCount <- function(df, colsymptom)
+{
+  df <- blank_NA(df)
+  df[, "Symptoms_Count"] <- 0
+  for (i in 1:nrow(df))
+  {
+    if (!is.na(df[i, colsymptom]) & str_count(df[i, colsymptom], ",") == 0)
+    {df[i, "Symptoms_Count"] <- 1}
+    else {df[i, "Symptoms_Count"] <- str_count(df[i, colsymptom], ",") + 1}
+  }
+  df[,"Symptoms_Count"] <- replace_na(df[,"Symptoms_Count"], 0)
+  return(df)
+}
+```
+
+
+```{r}
+df <- addsymptomCount(df, 17)
+```
+
+```{r}
+blank_NA <- function(df){
+  df[df == ''] <- NA
+  df
+}
+```
+
+```{r}
+df <- blank_NA(df)
+```
+
+19. count symptom type
+```{r}
+countSymptomType <- function(df, colsymptom)
+{
+  df[, colsymptom] <- gsub(" ", "", df[, colsymptom])
+  symptoms_df <- data_frame(Text = df[, colsymptom])
+  symptoms_words <- symptoms_df %>% unnest_tokens(output = word, 
+                                                  input = Text) 
+  symptoms_typecounts <- symptoms_words %>% 
+    count(word, sort = TRUE)
+  return(symptoms_typecounts)
+}
+```
+
+```{r}
+countSymptomType(df, 17)
+```
+
+```{r}
+head(df[,-1],10)
+```
+
+```{r}
+write.csv(df,"./cleansed_data.csv", row.names = FALSE)
+```
+
+
+END:
+convert all col classes
