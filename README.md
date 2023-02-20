@@ -5,9 +5,10 @@
 **Done By: Chow Sheng Yang, Yin Xin Min, Andrea Lim, Pong Zi Jie**  
 **Taught By: Professor Liu Qi Zhang**  
 
-This app is a one-stop platform inclusive of an interactive dashboard designed to automate data-wrangling processeses for epidemiologists (target audience). As large-scaled epidemics often involve hundreds of thousands of data being updated frequently, it is inefficient for researchers to manually import, clean and visualise this data. 
+This app is a one-stop platform inclusive of an interactive dashboard designed to automate data-wrangling processeses for epidemiologists (target audience). As large-scaled epidemics often involve hundreds of thousands of data being updated frequently, our app aims to eradicate the inefficiency of such a manually tedious process.
 
-In an attempt to reflect realistic events, the base data is taken from COVID-19 cases in Singapore in 2020 along with other simulated attributes such as postal codes, addresses and coordinates. A package of functions is written in a separate Rmd to help researchers quickly update, clean and transform the dirty data (and any new ones) as an epidemic situation changes over time. Some of the techniques used include text-mining/cleaning, monte-carlo simulation, discretising and creating calculated attributes (e.g duration of symptoms). The useable data is stored in CSV format and imported into the UI/Server to churn out interactive charts and graphs for researchers to visualise deeper insights. Maps used for this project are leaflet and ggmap requested from Google Cloud APIs.
+In an attempt to reflect realistic events, the base data is taken from COVID-19 cases in Singapore in 2020 along with other simulated attributes such as postal codes, addresses and coordinates. A package of functions is written in a separate Rmd to handle any dirty data using techniques such as text-mining, monte-carlo simulations, discretising and calculating attributes. The UI/Server in the app then translates the useable data into visual charts for insights. The main page includes a leaflet and ggmap displaying the distribution of cases in Singapore, with various interactions such as filters and map themes. The second page displays graphical distribution of the cases using plots, gganimations and wordcloud. 
 
+# Maps used for this project are fetched from Google Cloud APIs.
 
-link to view app: https://chowshengyang.shinyapps.io/Project-SA2-Group1/
+# link to view app: https://chowshengyang.shinyapps.io/Project-SA2-Group1/
